@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'self' 'unsafe-inline' http://localhost:3002; object-src 'none';"
+    />
+    <title>Nike. Just Do It. Nike.com</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Campaign data loader - similar to debug-backend.html
+      let currentCampaignData = null;
+      
+      // Helper function to extract title from persuasive text
+      function extractTitleFromText(text) {
+        if (!text) return 'Special Offer!';
+        
+        const sentences = text.split(/[.!?]/).filter(s => s.trim().length > 0);
+        if (sentences.length > 0) {
+          const title = sentences[0].trim();
+          return title.length > 50 ? title.substring(0, 47) + '...' : title;
+        }
+        
+        return text.length > 50 ? text.substring(0, 47) + '...' : text;
+      }
+      
+      // Function to create combined HTML preview - adapted from debug-backend.html
+      function createCombinedPreview(data) {
+        let combinedHTML = '';
+        
+        // Add persuasive text header if available
+        if (data.text && data.text.trim()) {
+          const title = data.title || extractTitleFromText(data.text) || 'Special Recommendation';
+          combinedHTML += `
+            <div class="widget-header" style="margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, #ff6b35, #f7931e); border-radius: 12px; color: white; text-align: center;">
+              <h2 style="margin: 0 0 15px 0; color: white; font-size: 24px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${title}</h2>
+              <p style="margin: 0; color: white; font-size: 16px; line-height: 1.6; opacity: 0.95;">${data.text}</p>
+            </div>
+          `;
+        }
+        
+        // Add the backend HTML (products)
+        if (data.html && data.html.trim()) {
+          combinedHTML += `
+            <div class="widget-products" style="margin-top: ${data.text ? '0' : '10px'};">
+              ${data.html}
+            </div>
+          `;
+        }
+        
+        return combinedHTML;
+      }
+      
+      // Get query parameters from URL
+      function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+      }
+      
+      // Fetch campaign data from backend - adapted from debug-backend.html
+      async function fetchBackendData() {
+        // Use query param if provided, otherwise use default
+        const campaignName = getQueryParam('campaignName') || 'Loyalty Builder Campaign - 2025-07-23 03:29';
+        const userId = getQueryParam('userId') || 'user_65fef1l32';
+        const objective = getQueryParam('objective') || 'customer-retention';
+        const brandName = getQueryParam('brandName') || 'Nike';
+        
+        try {
+          console.log('Fetching Nike campaign data...');
+          
+          // Build the API URL
+          const params = new URLSearchParams();
+          if (userId) params.append('userId', userId);
+          if (objective) params.append('objective', objective);
+          if (brandName) params.append('brandName', brandName);
+          
+          const url = `http://localhost:3002/campaigns/${encodeURIComponent(campaignName)}?${params.toString()}`;
+          console.log('Fetching from:', url);
+          
+          const response = await fetch(url);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          currentCampaignData = data;
+          
+          console.log('Backend response:', data);
+          
+          // Replace the demo section with the campaign content
+          loadCampaignBanner(data);
+          
+        } catch (error) {
+          console.error('Error fetching backend data:', error);
+          // Show fallback content
+          showFallbackBanner();
+        }
+      }
+      
+      // Load campaign banner into the demo section
+      function loadCampaignBanner(data) {
+        const demoSection = document.querySelector('.demo-iframe-section');
+        if (!demoSection) return;
+        
+        // Create the banner content
+        const combinedHTML = createCombinedPreview(data);
+        
+        // Inject CSS if available
+        if (data.css && data.css.trim()) {
+          const existingStyle = document.getElementById('campaign-styles');
+          if (existingStyle) {
+            existingStyle.remove();
+          }
+          
+          const style = document.createElement('style');
+          style.id = 'campaign-styles';
+          style.textContent = data.css;
+          document.head.appendChild(style);
+        }
+        
+        // Replace the section content
+        demoSection.innerHTML = `
+          <div class="container">
+            <div class="campaign-banner" style="margin: 0 auto; padding: 20px; background: white; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);">
+              ${combinedHTML}
+            </div>
+          </div>
+        `;
+        
+        console.log('✅ Campaign banner loaded successfully');
+      }
+      
+      // Fallback banner if campaign fails to load
+      function showFallbackBanner() {
+        const demoSection = document.querySelector('.demo-iframe-section');
+        if (!demoSection) return;
+        
+        demoSection.innerHTML = `
+          <div class="container">
+            <div class="campaign-banner" style="margin: 0 auto; padding: 40px; background: linear-gradient(135deg, #ff6b35, #f7931e); border-radius: 16px; text-align: center; color: white;">
+              <h2 style="margin: 0 0 15px 0; font-size: 28px; font-weight: bold;">Just Do It</h2>
+              <p style="margin: 0 0 20px 0; font-size: 18px; opacity: 0.9;">Discover the latest Nike innovations and gear up for greatness.</p>
+              <a href="#" style="display: inline-block; padding: 12px 30px; background: white; color: #ff6b35; text-decoration: none; border-radius: 25px; font-weight: bold; transition: transform 0.2s;">Shop Now</a>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Load campaign when page loads
+      document.addEventListener('DOMContentLoaded', function() {
+        // Small delay to ensure the page is fully loaded
+        setTimeout(fetchBackendData, 500);
+      });
+    </script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="header-top">
+        <div class="container">
+          <div class="header-top-left">
+            <a href="#" class="header-link">Find a Store</a>
+            <span class="divider">|</span>
+            <a href="#" class="header-link">Help</a>
+            <span class="divider">|</span>
+            <a href="#" class="header-link">Join Us</a>
+            <span class="divider">|</span>
+            <a href="#" class="header-link">Sign In</a>
+          </div>
+        </div>
+      </div>
+
+      <nav class="main-nav">
+        <div class="container">
+          <div class="nav-content">
+            <div class="logo">
+              <img
+                src="images/nike-logo.png"
+                alt="Nike"
+                width="60"
+                height="22"
+              />
+            </div>
+
+            <ul class="nav-menu">
+              <li><a href="#">New & Featured</a></li>
+              <li><a href="#">Men</a></li>
+              <li><a href="#">Women</a></li>
+              <li><a href="#">Kids</a></li>
+              <li><a href="#">Jordan</a></li>
+              <li><a href="#">Sport</a></li>
+            </ul>
+
+            <div class="nav-right">
+              <div class="search-container">
+                <input type="text" placeholder="Search" class="search-input" />
+              </div>
+              <div class="nav-icons">
+                <a href="#" class="nav-icon">♡</a>
+                <a href="#" class="nav-icon">🛍</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="main-content">
+      <!-- Hero Carousel -->
+      <section class="hero-carousel">
+        <div
+          class="hero-slide active"
+          style="background-image: url('images/hero-3.jpg')"
+        >
+          <div class="hero-overlay"></div>
+          <div class="hero-content">
+            <div class="hero-text">
+              <h1 class="hero-title">Too Easy</h1>
+              <p class="hero-subtitle">True greats make greatness look easy.</p>
+              <a href="#" class="cta-button">Shop</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Promotional Banners -->
+      <section class="promo-banners">
+        <div class="container">
+          <div class="banner-grid">
+            <div
+              class="banner-item"
+              style="background-image: url('images/hero-1.jpg')"
+            >
+              <div class="banner-overlay"></div>
+              <div class="banner-content">
+                <h3>Game Heat collection</h3>
+                <p>
+                  The intensity coming off the floor will set WNBA All-Star
+                  Weekend ablaze.
+                </p>
+                <a href="#" class="banner-link">Shop</a>
+              </div>
+            </div>
+
+            <div
+              class="banner-item"
+              style="background-image: url('images/promo-1.jpg')"
+            >
+              <div class="banner-overlay"></div>
+              <div class="banner-content">
+                <h3>RUN SUPPORTED</h3>
+                <p>
+                  Supportive cushioning in the new Nike Structure 26 helps keep
+                  runners running.
+                </p>
+                <div class="banner-buttons">
+                  <a href="#" class="banner-link secondary">Notify Me</a>
+                  <a href="#" class="banner-link">Shop All Running</a>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="banner-item"
+              style="background-image: url('images/promo-2.jpg')"
+            >
+              <div class="banner-overlay"></div>
+              <div class="banner-content">
+                <h3>AVA ROVER</h3>
+                <p>ReactX cushioning for every unexpected turn.</p>
+                <div class="banner-buttons">
+                  <a href="#" class="banner-link secondary">Notify Me</a>
+                  <a href="#" class="banner-link">Style Your Ava Rover</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Demo iframe placeholder -->
+      <section class="demo-iframe-section">
+        <div class="container">
+          <div id="demo-iframe-container" class="iframe-placeholder">
+            <!-- Your iframe will go here -->
+            <p>Demo iframe placeholder - replace this div with your iframe</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Jordan Featured Section -->
+      <section class="jordan-featured">
+        <div class="container">
+          <div
+            class="jordan-content"
+            style="background-image: url('images/hero-2.jpg')"
+          >
+            <div class="jordan-overlay"></div>
+            <div class="jordan-text">
+              <p class="jordan-subtitle">Women's Air Jordan 3 'Starfish'</p>
+              <h2 class="jordan-title">Light Work, Heavy Hitter</h2>
+              <a href="#" class="cta-button">Shop</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Back to Sport Section -->
+      <section class="back-to-sport">
+        <div class="container">
+          <div class="section-header">
+            <h2>Back to Sport</h2>
+            <h3>Practice Like A Pro</h3>
+          </div>
+          <div class="sport-grid">
+            <div class="sport-item">
+              <h4>Shop Soccer</h4>
+              <a href="#" class="sport-link">Shop All</a>
+            </div>
+            <div class="sport-item">
+              <h4>Shop Basketball</h4>
+              <a href="#" class="sport-link">Shop All</a>
+            </div>
+            <div class="sport-item">
+              <h4>Shop Running</h4>
+              <a href="#" class="sport-link">Shop All</a>
+            </div>
+            <div class="sport-item">
+              <h4>Shop Golf</h4>
+              <a href="#" class="sport-link">Shop All</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Shop The Classics -->
+      <section class="classics-section">
+        <div class="container">
+          <h2 class="section-title">Shop The Classics</h2>
+          <div class="classics-grid">
+            <div
+              class="classic-item"
+              style="background-image: url('images/promo-3.jpg')"
+            >
+              <div class="classic-overlay"></div>
+              <h4>Air Jordan 1</h4>
+            </div>
+            <div
+              class="classic-item"
+              style="background-image: url('images/hero-1.jpg')"
+            >
+              <div class="classic-overlay"></div>
+              <h4>Dunk</h4>
+            </div>
+            <div
+              class="classic-item"
+              style="background-image: url('images/hero-2.jpg')"
+            >
+              <div class="classic-overlay"></div>
+              <h4>Field General</h4>
+            </div>
+            <div
+              class="classic-item"
+              style="background-image: url('images/promo-1.jpg')"
+            >
+              <div class="classic-overlay"></div>
+              <h4>Air Force 1</h4>
+            </div>
+            <div
+              class="classic-item"
+              style="background-image: url('images/promo-2.jpg')"
+            >
+              <div class="classic-overlay"></div>
+              <h4>Air Max</h4>
+            </div>
+            <div
+              class="classic-item"
+              style="background-image: url('images/hero-3.jpg')"
+            >
+              <div class="classic-overlay"></div>
+              <h4>Vomero</h4>
+            </div>
+            <div
+              class="classic-item"
+              style="background-image: url('images/promo-3.jpg')"
+            >
+              <div class="classic-overlay"></div>
+              <h4>Cortez</h4>
+            </div>
+            <div
+              class="classic-item"
+              style="background-image: url('images/hero-1.jpg')"
+            >
+              <div class="classic-overlay"></div>
+              <h4>C1TY</h4>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-main">
+          <div class="footer-section">
+            <h4>Featured</h4>
+            <ul>
+              <li><a href="#">Air Force 1</a></li>
+              <li><a href="#">Jordan 1</a></li>
+              <li><a href="#">Air Max Dn</a></li>
+              <li><a href="#">Vomero</a></li>
+              <li><a href="#">Metcon</a></li>
+              <li><a href="#">Air Max 270</a></li>
+              <li><a href="#">Air Max 90</a></li>
+              <li><a href="#">Blazer</a></li>
+              <li><a href="#">Pegasus</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-section">
+            <h4>Shoes</h4>
+            <ul>
+              <li><a href="#">All Shoes</a></li>
+              <li><a href="#">Jordan Shoes</a></li>
+              <li><a href="#">Running Shoes</a></li>
+              <li><a href="#">Basketball Shoes</a></li>
+              <li><a href="#">Tennis Shoes</a></li>
+              <li><a href="#">Training Shoes</a></li>
+              <li><a href="#">Custom Shoes</a></li>
+              <li><a href="#">Sale Shoes</a></li>
+              <li><a href="#">Soccer Cleats</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-section">
+            <h4>Clothing</h4>
+            <ul>
+              <li><a href="#">All Clothing</a></li>
+              <li><a href="#">Tops & T-Shirts</a></li>
+              <li><a href="#">Shorts</a></li>
+              <li><a href="#">Hoodies & Pullovers</a></li>
+              <li><a href="#">Joggers & Sweatpants</a></li>
+              <li><a href="#">Sports Bras</a></li>
+              <li><a href="#">Pants & Tights</a></li>
+              <li><a href="#">Socks</a></li>
+              <li><a href="#">Sale Clothing</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-section">
+            <h4>Kids</h4>
+            <ul>
+              <li><a href="#">Infant & Toddler Shoes</a></li>
+              <li><a href="#">Kids Shoes</a></li>
+              <li><a href="#">Kids Basketball Shoes</a></li>
+              <li><a href="#">Kids Running Shoes</a></li>
+              <li><a href="#">Kids Jordan Shoes</a></li>
+              <li><a href="#">Kids Clothing</a></li>
+              <li><a href="#">Kids Backpacks</a></li>
+              <li><a href="#">Kids Sale</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <div class="footer-links">
+            <div class="footer-group">
+              <h5>Resources</h5>
+              <ul>
+                <li><a href="#">Gift Cards</a></li>
+                <li><a href="#">Find a Store</a></li>
+                <li><a href="#">Membership</a></li>
+                <li><a href="#">Nike Journal</a></li>
+                <li><a href="#">Site Feedback</a></li>
+              </ul>
+            </div>
+
+            <div class="footer-group">
+              <h5>Help</h5>
+              <ul>
+                <li><a href="#">Get Help</a></li>
+                <li><a href="#">Order Status</a></li>
+                <li><a href="#">Shipping and Delivery</a></li>
+                <li><a href="#">Returns</a></li>
+                <li><a href="#">Contact Us</a></li>
+              </ul>
+            </div>
+
+            <div class="footer-group">
+              <h5>Company</h5>
+              <ul>
+                <li><a href="#">About Nike</a></li>
+                <li><a href="#">News</a></li>
+                <li><a href="#">Careers</a></li>
+                <li><a href="#">Investors</a></li>
+                <li><a href="#">Sustainability</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="footer-copyright">
+            <p>© 2025 Nike, Inc. All Rights Reserved</p>
+            <div class="footer-legal">
+              <a href="#">Terms of Sale</a>
+              <a href="#">Terms of Use</a>
+              <a href="#">Nike Privacy Policy</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

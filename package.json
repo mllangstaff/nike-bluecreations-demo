@@ -1,0 +1,13 @@
+{
+  "name": "nike-demo-site",
+  "version": "1.0.0",
+  "description": "Nike demo site with BlueCreations widget integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["nike", "demo", "widget", "bluecreations"],
+  "author": "",
+  "license": "MIT"
+}
