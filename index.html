@@ -16,27 +16,32 @@
     <script>
       // Campaign data loader - similar to debug-backend.html
       let currentCampaignData = null;
-      
+
       // Helper function to extract title from persuasive text
       function extractTitleFromText(text) {
-        if (!text) return 'Special Offer!';
-        
-        const sentences = text.split(/[.!?]/).filter(s => s.trim().length > 0);
+        if (!text) return "Special Offer!";
+
+        const sentences = text
+          .split(/[.!?]/)
+          .filter((s) => s.trim().length > 0);
         if (sentences.length > 0) {
           const title = sentences[0].trim();
-          return title.length > 50 ? title.substring(0, 47) + '...' : title;
+          return title.length > 50 ? title.substring(0, 47) + "..." : title;
         }
-        
-        return text.length > 50 ? text.substring(0, 47) + '...' : text;
+
+        return text.length > 50 ? text.substring(0, 47) + "..." : text;
       }
-      
+
       // Function to create combined HTML preview - adapted from debug-backend.html
       function createCombinedPreview(data) {
-        let combinedHTML = '';
-        
+        let combinedHTML = "";
+
         // Add persuasive text header if available
         if (data.text && data.text.trim()) {
-          const title = data.title || extractTitleFromText(data.text) || 'Special Recommendation';
+          const title =
+            data.header ||
+            extractTitleFromText(data.text) ||
+            "Special Recommendation";
           combinedHTML += `
             <div class="widget-header" style="margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, #ff6b35, #f7931e); border-radius: 12px; color: white; text-align: center;">
               <h2 style="margin: 0 0 15px 0; color: white; font-size: 24px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${title}</h2>
@@ -44,87 +49,92 @@
             </div>
           `;
         }
-        
+
         // Add the backend HTML (products)
         if (data.html && data.html.trim()) {
           combinedHTML += `
-            <div class="widget-products" style="margin-top: ${data.text ? '0' : '10px'};">
+            <div class="widget-products" style="margin-top: ${
+              data.text ? "0" : "10px"
+            };">
               ${data.html}
             </div>
           `;
         }
-        
+
         return combinedHTML;
       }
-      
+
       // Get query parameters from URL
       function getQueryParam(param) {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.get(param);
       }
-      
+
       // Fetch campaign data from backend - adapted from debug-backend.html
       async function fetchBackendData() {
         // Use query param if provided, otherwise use default
-        const campaignName = getQueryParam('campaignName') || 'Loyalty Builder Campaign - 2025-07-23 03:29';
-        const userId = getQueryParam('userId') || 'user_65fef1l32';
-        const objective = getQueryParam('objective') || 'customer-retention';
-        const brandName = getQueryParam('brandName') || 'Nike';
-        
+        const campaignName =
+          getQueryParam("campaignName") ||
+          "Loyalty Builder Campaign - 2025-07-23 03:29";
+        const userId = getQueryParam("userId") || "user_65fef1l32";
+        const objective = getQueryParam("objective") || "customer-retention";
+        const brandName = getQueryParam("brandName") || "Nike";
+
         try {
-          console.log('Fetching Nike campaign data...');
-          
+          console.log("Fetching Nike campaign data...");
+
           // Build the API URL
           const params = new URLSearchParams();
-          if (userId) params.append('userId', userId);
-          if (objective) params.append('objective', objective);
-          if (brandName) params.append('brandName', brandName);
-          
-          const url = `http://localhost:3002/campaigns/${encodeURIComponent(campaignName)}?${params.toString()}`;
-          console.log('Fetching from:', url);
-          
+          if (userId) params.append("userId", userId);
+          if (objective) params.append("objective", objective);
+          if (brandName) params.append("brandName", brandName);
+
+          const url = `http://localhost:3002/campaigns/${encodeURIComponent(
+            campaignName
+          )}?${params.toString()}`;
+          console.log("Fetching from:", url);
+
           const response = await fetch(url);
-          
+
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
-          
+
           const data = await response.json();
           currentCampaignData = data;
-          
-          console.log('Backend response:', data);
-          
+
+          console.log("Backend response:", data);
+
           // Replace the demo section with the campaign content
           loadCampaignBanner(data);
-          
         } catch (error) {
-          console.error('Error fetching backend data:', error);
+          console.error("Error fetching backend data:", error);
           // Show fallback content
           showFallbackBanner();
         }
       }
-      
+
       // Load campaign banner into the demo section
       function loadCampaignBanner(data) {
-        const demoSection = document.querySelector('.demo-iframe-section');
+        const demoSection = document.querySelector(".demo-iframe-section");
         if (!demoSection) return;
-        
+
         // Create the banner content
         const combinedHTML = createCombinedPreview(data);
-        
+
         // Inject CSS if available
         if (data.css && data.css.trim()) {
-          const existingStyle = document.getElementById('campaign-styles');
+          const existingStyle = document.getElementById("campaign-styles");
           if (existingStyle) {
             existingStyle.remove();
           }
-          
-          const style = document.createElement('style');
-          style.id = 'campaign-styles';
+
+          const style = document.createElement("style");
+          style.id = "campaign-styles";
           style.textContent = data.css;
           document.head.appendChild(style);
         }
-        
+
         // Replace the section content
         demoSection.innerHTML = `
           <div class="container">
@@ -133,15 +143,15 @@
             </div>
           </div>
         `;
-        
-        console.log('✅ Campaign banner loaded successfully');
+
+        console.log("✅ Campaign banner loaded successfully");
       }
-      
+
       // Fallback banner if campaign fails to load
       function showFallbackBanner() {
-        const demoSection = document.querySelector('.demo-iframe-section');
+        const demoSection = document.querySelector(".demo-iframe-section");
         if (!demoSection) return;
-        
+
         demoSection.innerHTML = `
           <div class="container">
             <div class="campaign-banner" style="margin: 0 auto; padding: 40px; background: linear-gradient(135deg, #ff6b35, #f7931e); border-radius: 16px; text-align: center; color: white;">
@@ -152,9 +162,9 @@
           </div>
         `;
       }
-      
+
       // Load campaign when page loads
-      document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener("DOMContentLoaded", function () {
         // Small delay to ensure the page is fully loaded
         setTimeout(fetchBackendData, 500);
       });
